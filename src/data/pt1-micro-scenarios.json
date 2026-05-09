@@ -1,0 +1,230 @@
+{
+  "recon_enum": [
+    {
+      "id": "recon-001",
+      "title": "Network Service Discovery",
+      "difficulty": "beginner",
+      "domain": "Recon & Enumeration",
+      "subskills": ["Port scanning", "Service identification", "Version detection"],
+      "description": "Perform comprehensive reconnaissance on a target to identify all running services and potential entry points.",
+      "targetIP": "10.10.10.50",
+      "openPorts": ["22/tcp SSH", "80/tcp HTTP", "443/tcp HTTPS"],
+      "objectives": [
+        "Identify all open ports on the target",
+        "Determine service versions",
+        "Identify potential attack vectors"
+      ],
+      "timeEstimate": "5-10 minutes",
+      "validApproaches": ["nmap -p-", "nmap -sV", "masscan", "rustscan"],
+      "keyCommands": ["nmap", "masscan", "nc", "telnet"]
+    },
+    {
+      "id": "recon-002",
+      "title": "DNS and Subdomain Enumeration",
+      "difficulty": "intermediate",
+      "domain": "Recon & Enumeration",
+      "subskills": ["DNS enumeration", "Subdomain discovery", "Zone transfers"],
+      "description": "Enumerate DNS records and discover subdomains for the target organization.",
+      "targetIP": "example.thm",
+      "openPorts": ["53/tcp DNS", "80/tcp HTTP"],
+      "objectives": [
+        "Enumerate DNS records (A, AAAA, MX, TXT)",
+        "Discover subdomains",
+        "Attempt zone transfer"
+      ],
+      "timeEstimate": "10-15 minutes",
+      "validApproaches": ["dig", "nslookup", "dnsenum", "subfinder", "amass"],
+      "keyCommands": ["dig", "dnsenum", "fierce", "subfinder", "amass"]
+    }
+  ],
+  "web_app": [
+    {
+      "id": "web-001",
+      "title": "Directory and File Discovery",
+      "difficulty": "beginner",
+      "domain": "Web Application Testing",
+      "subskills": ["Content discovery", "Directory fuzzing", "Hidden resources"],
+      "description": "Discover hidden directories and files on a web application to find administrative interfaces or sensitive data.",
+      "targetIP": "10.10.10.75",
+      "openPorts": ["80/tcp HTTP", "443/tcp HTTPS"],
+      "objectives": [
+        "Discover hidden directories using wordlists",
+        "Identify admin panels or backup files",
+        "Find sensitive configuration files"
+      ],
+      "timeEstimate": "5-10 minutes",
+      "validApproaches": ["gobuster", "dirb", "dirbuster", "ffuf", "feroxbuster"],
+      "keyCommands": ["gobuster", "dirb", "ffuf", "feroxbuster", "wfuzz"]
+    },
+    {
+      "id": "web-002",
+      "title": "SQL Injection Discovery and Exploitation",
+      "difficulty": "intermediate",
+      "domain": "Web Application Testing",
+      "subskills": ["SQLi detection", "Manual injection", "sqlmap usage", "Database dumping"],
+      "description": "Identify and exploit SQL injection vulnerabilities to extract database contents.",
+      "targetIP": "10.10.10.85",
+      "openPorts": ["80/tcp HTTP", "3306/tcp MySQL"],
+      "objectives": [
+        "Identify SQL injection points",
+        "Extract database names and tables",
+        "Dump user credentials"
+      ],
+      "timeEstimate": "10-15 minutes",
+      "validApproaches": ["Manual SQLi testing", "sqlmap automated exploitation"],
+      "keyCommands": ["sqlmap", "curl", "burpsuite", "manual payload testing"]
+    }
+  ],
+  "network_pentest": [
+    {
+      "id": "net-001",
+      "title": "SMB Enumeration and Authentication",
+      "difficulty": "beginner",
+      "domain": "Network Penetration Testing",
+      "subskills": ["SMB enumeration", "Share discovery", "Null session attacks"],
+      "description": "Enumerate SMB shares and attempt to access them without authentication.",
+      "targetIP": "10.10.10.95",
+      "openPorts": ["139/tcp NetBIOS", "445/tcp SMB"],
+      "objectives": [
+        "Enumerate SMB shares",
+        "Test for null session access",
+        "Download sensitive files"
+      ],
+      "timeEstimate": "5-10 minutes",
+      "validApproaches": ["smbclient", "smbmap", "crackmapexec", "enum4linux", "nxc"],
+      "keyCommands": ["smbclient", "smbmap", "crackmapexec", "nxc", "enum4linux"]
+    },
+    {
+      "id": "net-002",
+      "title": "SSH Credential Brute Force",
+      "difficulty": "intermediate",
+      "domain": "Network Penetration Testing",
+      "subskills": ["Password attacks", "Credential spraying", "Hydra usage"],
+      "description": "Perform targeted password attacks against SSH service to gain initial access.",
+      "targetIP": "10.10.10.105",
+      "openPorts": ["22/tcp SSH"],
+      "objectives": [
+        "Identify valid usernames",
+        "Perform password spray attack",
+        "Gain SSH access"
+      ],
+      "timeEstimate": "10-15 minutes",
+      "validApproaches": ["hydra", "medusa", "ncrack", "patator"],
+      "keyCommands": ["hydra", "medusa", "ncrack", "ssh"]
+    }
+  ],
+  "active_directory": [
+    {
+      "id": "ad-001",
+      "title": "LDAP Enumeration and User Discovery",
+      "difficulty": "beginner",
+      "domain": "Active Directory",
+      "subskills": ["LDAP queries", "User enumeration", "Group membership"],
+      "description": "Enumerate Active Directory users and groups via LDAP to map the domain structure.",
+      "targetIP": "10.10.10.120",
+      "openPorts": ["389/tcp LDAP", "636/tcp LDAPS", "3268/tcp Global Catalog"],
+      "objectives": [
+        "Enumerate domain users",
+        "Identify privileged groups",
+        "Map user-group relationships"
+      ],
+      "timeEstimate": "5-10 minutes",
+      "validApproaches": ["ldapsearch", "windapsearch", "crackmapexec", "nxc"],
+      "keyCommands": ["ldapsearch", "windapsearch.py", "crackmapexec", "nxc"]
+    },
+    {
+      "id": "ad-002",
+      "title": "Kerberoasting Attack",
+      "difficulty": "intermediate",
+      "domain": "Active Directory",
+      "subskills": ["Service Principal Names", "TGS requests", "Hash cracking"],
+      "description": "Extract service account hashes via Kerberoasting and crack them offline.",
+      "targetIP": "10.10.10.130",
+      "openPorts": ["88/tcp Kerberos", "389/tcp LDAP", "445/tcp SMB"],
+      "objectives": [
+        "Request TGS tickets for service accounts",
+        "Extract Kerberos hashes",
+        "Crack service account passwords"
+      ],
+      "timeEstimate": "10-15 minutes",
+      "validApproaches": ["GetUserSPNs.py", "Rubeus", "crackmapexec"],
+      "keyCommands": ["GetUserSPNs.py", "hashcat", "john", "crackmapexec"]
+    }
+  ],
+  "exploitation_privesc": [
+    {
+      "id": "exploit-001",
+      "title": "Linux SUID Privilege Escalation",
+      "difficulty": "beginner",
+      "domain": "Exploitation & Post-Exploitation",
+      "subskills": ["SUID binaries", "GTFOBins", "Privilege escalation"],
+      "description": "Identify and exploit SUID binaries to escalate privileges to root.",
+      "targetIP": "10.10.10.140",
+      "openPorts": ["22/tcp SSH"],
+      "objectives": [
+        "Find SUID binaries",
+        "Identify exploitable binaries using GTFOBins",
+        "Escalate to root"
+      ],
+      "timeEstimate": "5-10 minutes",
+      "validApproaches": ["find SUID", "GTFOBins lookup", "Manual exploitation"],
+      "keyCommands": ["find / -perm -4000", "gtfobins", "sudo -l"]
+    },
+    {
+      "id": "exploit-002",
+      "title": "Windows Credential Harvesting",
+      "difficulty": "intermediate",
+      "domain": "Exploitation & Post-Exploitation",
+      "subskills": ["Credential dumping", "Mimikatz", "NTDS extraction"],
+      "description": "Extract credentials from a compromised Windows system for lateral movement.",
+      "targetIP": "10.10.10.150",
+      "openPorts": ["445/tcp SMB", "3389/tcp RDP"],
+      "objectives": [
+        "Dump LSASS credentials",
+        "Extract NTLM hashes",
+        "Identify reusable credentials"
+      ],
+      "timeEstimate": "10-15 minutes",
+      "validApproaches": ["mimikatz", "secretsdump", "procdump + mimikatz"],
+      "keyCommands": ["mimikatz", "secretsdump.py", "lsassy", "procdump"]
+    }
+  ],
+  "reporting_time": [
+    {
+      "id": "report-001",
+      "title": "Executive Summary Writing",
+      "difficulty": "beginner",
+      "domain": "Reporting & Time Management",
+      "subskills": ["Executive communication", "Risk assessment", "Remediation priorities"],
+      "description": "Practice writing a clear, concise executive summary from technical findings.",
+      "targetIP": "N/A",
+      "openPorts": [],
+      "objectives": [
+        "Summarize technical findings for non-technical audience",
+        "Assess business risk",
+        "Prioritize remediation steps"
+      ],
+      "timeEstimate": "10-15 minutes",
+      "validApproaches": ["Markdown report", "Structured summary"],
+      "keyCommands": ["N/A - Documentation exercise"]
+    },
+    {
+      "id": "report-002",
+      "title": "Vulnerability Prioritization Matrix",
+      "difficulty": "intermediate",
+      "domain": "Reporting & Time Management",
+      "subskills": ["CVSS scoring", "Risk matrix", "Remediation timelines"],
+      "description": "Create a vulnerability prioritization matrix based on impact and exploitability.",
+      "targetIP": "N/A",
+      "openPorts": [],
+      "objectives": [
+        "Assess vulnerability severity using CVSS",
+        "Create risk matrix (likelihood vs impact)",
+        "Define remediation timelines"
+      ],
+      "timeEstimate": "15 minutes",
+      "validApproaches": ["CVSS calculator", "Risk assessment framework"],
+      "keyCommands": ["N/A - Risk assessment exercise"]
+    }
+  ]
+}

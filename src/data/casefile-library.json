@@ -1,0 +1,296 @@
+[
+  {
+    "id": "case_001_backup_disclosure",
+    "title": "The Forgotten Archive",
+    "difficulty": "beginner",
+    "estimatedMinutes": 25,
+    "mechanic": "backup_file_discovery",
+    "tags": ["web", "enumeration", "information_disclosure", "OWASP_A05"],
+    "brief": "A client reports that their dev portal is 'just static content,' but a backup archive was exposed on their web server for several minutes last week. Your task: assess whether this exposure could lead to credential disclosure or system compromise.",
+    "scenario": {
+      "companyName": "Acme Corp",
+      "context": "Small e-commerce startup with limited security resources",
+      "target": "172.16.45.89",
+      "infrastructure": "Apache 2.4.41 on Ubuntu 18.04"
+    },
+    "artifacts": {
+      "nmap_txt": "Starting Nmap 7.94\nNmap scan report for 172.16.45.89\nHost is up (0.00045s latency).\n\nPORT   STATE SERVICE VERSION\n22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu\n80/tcp open  http    Apache httpd 2.4.41",
+      "gobuster_txt": "===============================================================\nGobuster v3.6\n===============================================================\n[+] Url:                     http://172.16.45.89\n[+] Threads:                 10\n[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/common.txt\n===============================================================\n2024/04/15 14:32:10 Starting gobuster\n===============================================================\n/.htaccess            (Status: 403) [Size: 278]\n/.htpasswd            (Status: 403) [Size: 278]\n/backup               (Status: 301) [Size: 319] [--> http://172.16.45.89/backup/]\n/dev                  (Status: 301) [Size: 316] [--> http://172.16.45.89/dev/]\n/index.html           (Status: 200) [Size: 10918]\n/server-status        (Status: 403) [Size: 278]\n===============================================================\n2024/04/15 14:32:25 Finished\n===============================================================",
+      "dev_index_php": "<?php\nrequire_once('config.php');\n\n// Simple dev dashboard\nif ($_SESSION['user_role'] !== 'developer') {\n    die('Access denied');\n}\n\n$db = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);\n\nif ($db->connect_error) {\n    die('Database connection failed: ' . $db->connect_error);\n}\n\n// Display recent orders\n$result = $db->query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 10');\n?>\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Dev Dashboard</title>\n</head>\n<body>\n    <h1>Developer Dashboard</h1>\n    <?php while ($row = $result->fetch_assoc()): ?>\n        <div>Order #<?= $row['id'] ?> - <?= $row['customer_email'] ?></div>\n    <?php endwhile; ?>\n</body>\n</html>",
+      "env_old": "# Application Configuration\nAPP_NAME=\"Acme E-Commerce\"\nAPP_ENV=development\nAPP_DEBUG=true\nAPP_URL=http://172.16.45.89\n\n# Database Configuration\nDB_CONNECTION=mysql\nDB_HOST=172.16.45.89\nDB_PORT=3306\nDB_DATABASE=acme_shop\nDB_USERNAME=acme_user\nDB_PASSWORD=AcmeDevPass2023!\n\n# Session\nSESSION_DRIVER=file\nSESSION_LIFETIME=120\n\n# Admin Credentials (temp)\nADMIN_EMAIL=admin@acme.local\nADMIN_PASS=admin_temp_pass_123",
+      "users_sql": "-- MySQL dump 10.13\n-- Database: acme_shop\n\nCREATE TABLE IF NOT EXISTS `users` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `username` varchar(50) NOT NULL,\n  `email` varchar(100) NOT NULL,\n  `password_hash` varchar(255) NOT NULL,\n  `role` enum('customer','developer','admin') DEFAULT 'customer',\n  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\nINSERT INTO `users` (`username`, `email`, `password_hash`, `role`) VALUES\n('alice', 'alice@acme.local', '$2y$10$abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklm', 'developer'),\n('bob', 'bob@acme.local', '$2y$10$zyxwvutsrqponmlkjihgfedcba0987654321zyxwvutsrqpon', 'admin'),\n('dev_account', 'dev@acme.local', 'plaintext_dev_password_2023', 'developer');\n\n-- Note: One account still uses plaintext password from early development",
+      "notes_txt": "Development Notes - 2023-11-15\n================================\n\nTODO:\n- Migrate all passwords to bcrypt (see users table)\n- Remove .env.old from production\n- Lock down /dev/ directory with HTTP auth\n- Rotate database credentials\n- Disable debug mode in production\n\nKNOWN ISSUES:\n- dev_account still has plaintext password\n- sudo access for acme_user on database server\n- Apache running as www-data with read access to /etc/passwd\n\nDEPLOYMENT:\n- Use 'sudo systemctl restart apache2' after config changes\n- DB backups run nightly at 2 AM to /var/backups/mysql/\n- SSH keys for acme_user stored in /home/acme_user/.ssh/"
+    },
+    "supportedCommands": [
+      "cat nmap.txt",
+      "cat gobuster.txt",
+      "cat dev/index.php",
+      "cat dev/.env.old",
+      "cat dev/users.sql",
+      "cat dev/notes.txt",
+      "grep -i pass dev/.env.old",
+      "grep -i user dev/.env.old",
+      "grep -Rni password dev/",
+      "grep -Rni secret dev/",
+      "strings dev/users.sql",
+      "head dev/users.sql",
+      "tail dev/notes.txt",
+      "ls",
+      "ls dev/",
+      "pwd"
+    ],
+    "objectives": [
+      {
+        "id": "enum_dirs",
+        "description": "Identify exposed directories",
+        "hint": "Check the gobuster results carefully",
+        "completed": false
+      },
+      {
+        "id": "find_credentials",
+        "description": "Discover credentials in configuration files",
+        "hint": "Environment files often contain database credentials",
+        "completed": false
+      },
+      {
+        "id": "identify_plaintext",
+        "description": "Find plaintext password vulnerability",
+        "hint": "Look at the SQL dump and development notes",
+        "completed": false
+      },
+      {
+        "id": "assess_impact",
+        "description": "Determine privilege escalation potential",
+        "hint": "Check the notes for sudo access information",
+        "completed": false
+      }
+    ],
+    "solution": {
+      "attackPath": [
+        "Enumerate web directories with gobuster",
+        "Discover /dev/ and /backup/ directories",
+        "Access dev/.env.old file",
+        "Extract database credentials: acme_user:AcmeDevPass2023!",
+        "Review users.sql for password storage issues",
+        "Identify plaintext password for dev_account",
+        "Note sudo access for database user from notes.txt",
+        "Chain credentials → database access → sudo → root"
+      ],
+      "keyFindings": [
+        "CRITICAL: Database credentials exposed in .env.old",
+        "HIGH: Plaintext password in users table (dev_account)",
+        "MEDIUM: Development notes reveal sudo access",
+        "LOW: Debug mode enabled in production"
+      ],
+      "mechanicExplanation": "This case demonstrates **backup file discovery** as an entry point. Developers often leave old configuration files (.env.old, config.bak, settings.php.bak) in web-accessible directories. These files contain hardcoded credentials that are frequently reused across the infrastructure.\n\nThe progression follows a realistic attack chain: **web enumeration → backup discovery → credential extraction → database access → privilege escalation**.",
+      "reportTemplate": {
+        "title": "Exposed Backup Directory and Credential Disclosure",
+        "severity": "Critical",
+        "cvss": "9.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N)",
+        "description": "A development backup directory (/dev/) was accessible over HTTP without authentication. The directory contained sensitive configuration files including an old environment file (.env.old) with hardcoded database credentials and a SQL dump revealing plaintext passwords.",
+        "impact": "An unauthenticated attacker could:\n- Obtain database credentials (acme_user:AcmeDevPass2023!)\n- Access the MySQL database directly (port 3306)\n- Extract user credentials including plaintext passwords\n- Leverage sudo access for privilege escalation to root\n- Achieve full system compromise",
+        "evidence": [
+          "Directory listing: /dev/ (301 redirect, directory browsing enabled)",
+          "File: /dev/.env.old (database credentials exposed)",
+          "File: /dev/users.sql (plaintext password: dev_account)",
+          "File: /dev/notes.txt (sudo access information)"
+        ],
+        "remediation": [
+          "IMMEDIATE: Remove /dev/ and /backup/ directories from webroot",
+          "IMMEDIATE: Rotate all exposed credentials (DB_PASSWORD, admin passwords)",
+          "HIGH: Migrate all plaintext passwords to bcrypt",
+          "HIGH: Remove sudo access for web application database user",
+          "MEDIUM: Implement .htaccess restrictions on sensitive directories",
+          "MEDIUM: Disable directory listing in Apache configuration",
+          "LOW: Disable debug mode in production (APP_DEBUG=false)"
+        ]
+      }
+    },
+    "hintLadder": [
+      {
+        "level": 1,
+        "type": "nudge",
+        "text": "You have enough information to stop fuzzing and start reading files. The gobuster output shows accessible directories.",
+        "cost": 0
+      },
+      {
+        "level": 2,
+        "type": "direction",
+        "text": "Look for configuration files in the /dev/ directory. Files with extensions like .old, .bak, or .env often contain secrets in key=value format.",
+        "cost": 3
+      },
+      {
+        "level": 3,
+        "type": "reveal",
+        "text": "Read the file at dev/.env.old - it contains database credentials. Also check users.sql for password storage issues and notes.txt for privilege escalation vectors.",
+        "cost": 5
+      }
+    ],
+    "teachingMoments": [
+      {
+        "trigger": "cat dev/.env.old",
+        "category": "OWASP",
+        "concept": "A05: Security Misconfiguration",
+        "explanation": "Environment files (.env) store application configuration including database credentials, API keys, and secrets. Developers create backups (.env.old, .env.bak) during testing but forget to remove them. Because these files are not linked from the website, admins assume they're protected—but they're accessible via direct URL.\n\n**Why this matters**: One exposed file = database credentials = full compromise.\n\n**Real-world impact**: This is how Equifax 2017 started (different vuln but similar misconfiguration), affecting 147 million people."
+      },
+      {
+        "trigger": "cat dev/users.sql",
+        "category": "SEC0",
+        "concept": "Password Storage Fundamentals",
+        "explanation": "Notice the password_hash field uses bcrypt ($2y$10$...) for most users, but dev_account has 'plaintext_dev_password_2023' as the actual password value.\n\n**SEC0 teaches**: Passwords must NEVER be stored in plaintext. Use bcrypt, argon2, or PBKDF2 with:\n- High iteration count (bcrypt cost factor ≥ 12)\n- Unique salt per password\n- No custom crypto (don't roll your own)\n\n**PT1 tip**: Look for password fields in SQL dumps, config files, and scripts. Legacy accounts often survive with weak storage."
+      },
+      {
+        "trigger": "cat dev/notes.txt",
+        "category": "PT1",
+        "concept": "Privilege Escalation Path",
+        "explanation": "The notes reveal: 'sudo access for acme_user on database server'. This is your privilege escalation vector.\n\n**Attack chain**: DB credentials → MySQL access → enumerate database → discover admin hash → crack hash OR use existing plaintext password → SSH as dev_account → lateral movement with database creds → sudo escalation.\n\n**PT1 methodology**: Always check:\n- sudo -l (sudo privileges)\n- /etc/crontab (scheduled tasks)\n- find / -perm -4000 (SUID binaries)\n- Credential reuse across services"
+      }
+    ]
+  },
+  {
+    "id": "case_002_polite_robot",
+    "title": "The Polite Robot",
+    "difficulty": "beginner",
+    "estimatedMinutes": 20,
+    "mechanic": "robots_txt_analysis",
+    "tags": ["web", "reconnaissance", "information_disclosure"],
+    "brief": "During reconnaissance of a corporate website, you notice the robots.txt file. Most admins use it to hide uninteresting paths, but sometimes they accidentally reveal sensitive directories. Investigate whether this file exposes anything useful.",
+    "scenario": {
+      "companyName": "TechStart Inc",
+      "context": "Startup with rapid development cycle, minimal security review",
+      "target": "10.129.67.142",
+      "infrastructure": "nginx 1.18.0 on Debian 11"
+    },
+    "artifacts": {
+      "nmap_txt": "Starting Nmap 7.94\nNmap scan report for 10.129.67.142\nHost is up (0.00032s latency).\n\nPORT   STATE SERVICE VERSION\n22/tcp open  ssh     OpenSSH 8.4p1 Debian\n80/tcp open  http    nginx 1.18.0\n\nService Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel",
+      "robots_txt": "# robots.txt for TechStart Inc\n# Updated: 2024-02-10\n\nUser-agent: *\nDisallow: /admin/\nDisallow: /api/v1/internal/\nDisallow: /backup-2024-01-15/\nDisallow: /config/\nDisallow: /db-dumps/\nDisallow: /.git/\nDisallow: /internal-docs/\nDisallow: /old-site/\nDisallow: /test/\nDisallow: /vendor/\n\n# Allow crawling of public areas\nAllow: /\nAllow: /blog/\nAllow: /products/\nAllow: /about/\n\nSitemap: http://10.129.67.142/sitemap.xml",
+      "admin_response": "HTTP/1.1 403 Forbidden\nServer: nginx/1.18.0\nDate: Mon, 15 Apr 2024 10:15:32 GMT\nContent-Type: text/html\nContent-Length: 162\nConnection: keep-alive\n\n<html>\n<head><title>403 Forbidden</title></head>\n<body>\n<center><h1>403 Forbidden</h1></center>\n<center>nginx/1.18.0</center>\n</body>\n</html>",
+      "backup_listing": "Index of /backup-2024-01-15/\n\nName                    Last modified      Size\nParent Directory                             -\ndatabase_backup.sql     2024-01-15 03:15  2.3M\nwp-config.php.bak       2024-01-15 03:15  3.1K\nusers_export.csv        2024-01-15 03:16   45K\napi_keys.txt            2024-01-15 03:16  1.2K\nserver_config.tar.gz    2024-01-15 03:17  8.7M",
+      "api_keys_txt": "# TechStart API Keys - INTERNAL USE ONLY (training scenario — not real secrets)\n# Generated: 2024-01-10\n\n# Stripe Payment Gateway (placeholders only)\nSTRIPE_PUBLIC_KEY=stripe_public_training_placeholder\nSTRIPE_SECRET_KEY=stripe_secret_training_placeholder\n\n# AWS S3 Bucket Access (placeholders only)\nAWS_ACCESS_KEY_ID=aws_access_training_placeholder\nAWS_SECRET_ACCESS_KEY=aws_secret_training_placeholder\nAWS_BUCKET_NAME=techstart-uploads\n\n# SendGrid Email API (placeholder only)\nSENDGRID_API_KEY=sendgrid_api_training_placeholder\n\n# Internal API Authentication (fictional)\nINTERNAL_API_KEY=techstart_internal_2024_secure_key_do_not_share\nINTERNAL_API_SECRET=ts_secret_api_v1_production_key_98765",
+      "git_config": "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n\tlogallrefupdates = true\n[remote \"origin\"]\n\turl = https://github.com/techstart-internal/main-website.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"main\"]\n\tremote = origin\n\tmerge = refs/heads/main\n[user]\n\tname = deploy-bot\n\temail = deploy@techstart.local"
+    },
+    "supportedCommands": [
+      "cat robots.txt",
+      "curl http://10.129.67.142/robots.txt",
+      "cat nmap.txt",
+      "curl http://10.129.67.142/admin/",
+      "curl http://10.129.67.142/backup-2024-01-15/",
+      "curl http://10.129.67.142/backup-2024-01-15/api_keys.txt",
+      "cat backup-2024-01-15/api_keys.txt",
+      "curl http://10.129.67.142/.git/config",
+      "cat .git/config",
+      "ls backup-2024-01-15/",
+      "grep -i key backup-2024-01-15/api_keys.txt",
+      "grep -i password backup-2024-01-15/",
+      "head backup-2024-01-15/api_keys.txt"
+    ],
+    "objectives": [
+      {
+        "id": "analyze_robots",
+        "description": "Analyze robots.txt for sensitive paths",
+        "hint": "Robots.txt often reveals paths admins want hidden",
+        "completed": false
+      },
+      {
+        "id": "discover_backup",
+        "description": "Access the backup directory",
+        "hint": "Check if the backup directory is actually restricted",
+        "completed": false
+      },
+      {
+        "id": "extract_api_keys",
+        "description": "Retrieve API keys from backup",
+        "hint": "Look for files with names like api_keys, credentials, or secrets",
+        "completed": false
+      },
+      {
+        "id": "identify_git",
+        "description": "Discover source control exposure",
+        "hint": "The .git directory can reveal repository information",
+        "completed": false
+      }
+    ],
+    "solution": {
+      "attackPath": [
+        "Request robots.txt from web server",
+        "Identify multiple sensitive directories in Disallow list",
+        "Attempt to access /backup-2024-01-15/ directory",
+        "Discover directory listing is enabled (misconfiguration)",
+        "Download api_keys.txt file",
+        "Extract Stripe, AWS, SendGrid, and internal API keys",
+        "Access /.git/config to identify source repository",
+        "Use credentials for lateral movement or data access"
+      ],
+      "keyFindings": [
+        "CRITICAL: API keys exposed in accessible backup directory",
+        "HIGH: Directory listing enabled on sensitive paths",
+        "HIGH: .git directory accessible (source code disclosure)",
+        "MEDIUM: robots.txt reveals sensitive directory structure"
+      ],
+      "mechanicExplanation": "This case demonstrates **robots.txt reconnaissance** and the **security through obscurity** anti-pattern. Admins mistakenly believe that:\n- Disallow directives block access (they don't - they're just suggestions for crawlers)\n- Hidden directories without links are safe (they're not - direct URL access works)\n- robots.txt is harmless (it's an attacker roadmap)\n\n**The irony**: robots.txt is designed to help search engines. Listing sensitive paths tells Google (and attackers) exactly what you're hiding.",
+      "reportTemplate": {
+        "title": "Exposed API Keys and Backup Directory via robots.txt Disclosure",
+        "severity": "Critical",
+        "cvss": "9.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)",
+        "description": "The robots.txt file disclosed multiple sensitive directories including a backup directory (/backup-2024-01-15/) that was accessible without authentication. Directory listing was enabled, exposing critical files including api_keys.txt containing production API credentials for Stripe, AWS, SendGrid, and internal services. Additionally, the .git directory was accessible, potentially exposing source code.",
+        "impact": "An unauthenticated attacker could:\n- Access production API keys (Stripe payment processing, AWS infrastructure, SendGrid email)\n- Perform financial fraud via Stripe if live-mode keys were exposed\n- Access/modify AWS S3 bucket contents if IAM-style keys were exposed\n- Send phishing emails via SendGrid if mail API tokens were exposed\n- Access internal APIs (techstart_internal_2024_secure_key)\n- Download source code via .git directory\n- Achieve full application compromise",
+        "evidence": [
+          "File: /robots.txt (exposes 10 sensitive directories)",
+          "Directory: /backup-2024-01-15/ (accessible, listing enabled)",
+          "File: /backup-2024-01-15/api_keys.txt (5 API key pairs exposed)",
+          "Directory: /.git/ (source control metadata accessible)"
+        ],
+        "remediation": [
+          "IMMEDIATE: Rotate ALL exposed API keys (Stripe, AWS, SendGrid, internal)",
+          "IMMEDIATE: Remove backup directories from webroot",
+          "IMMEDIATE: Remove .git directory from production server",
+          "HIGH: Disable directory listing in nginx configuration",
+          "HIGH: Implement proper access controls (not robots.txt reliance)",
+          "MEDIUM: Review and minimize robots.txt Disallow entries",
+          "MEDIUM: Store API keys in environment variables, not files",
+          "LOW: Implement automated secret scanning in CI/CD pipeline"
+        ]
+      }
+    },
+    "hintLadder": [
+      {
+        "level": 1,
+        "type": "nudge",
+        "text": "The robots.txt file is telling you exactly where to look. Disallow directives reveal what the admin is trying to hide.",
+        "cost": 0
+      },
+      {
+        "level": 2,
+        "type": "direction",
+        "text": "Try accessing the backup directory directly. The backup path has a date in it (backup-2024-01-15). Check if it's actually restricted or just hidden from crawlers.",
+        "cost": 3
+      },
+      {
+        "level": 3,
+        "type": "reveal",
+        "text": "Access http://10.129.67.142/backup-2024-01-15/ - directory listing is enabled. Download api_keys.txt to find production credentials. Also check /.git/config for repository information.",
+        "cost": 5
+      }
+    ],
+    "teachingMoments": [
+      {
+        "trigger": "cat robots.txt",
+        "category": "PT1",
+        "concept": "Reconnaissance - Web Application Enumeration",
+        "explanation": "robots.txt is a goldmine during reconnaissance. It reveals:\n- Directory structure (admin, api, backup, config)\n- Naming conventions (backup-2024-01-15)\n- Technology stack (vendor/ = PHP dependencies)\n- Forgotten legacy paths (old-site/)\n\n**Critical misconception**: Disallow directives do NOT block access. They're polite suggestions for search engines. All paths in robots.txt are still accessible via direct URL.\n\n**PT1 methodology**: Always check robots.txt during web enumeration (after nmap, before directory fuzzing). It's faster than gobuster and often more accurate."
+      },
+      {
+        "trigger": "curl http://10.129.67.142/backup-2024-01-15/",
+        "category": "OWASP",
+        "concept": "A05: Security Misconfiguration - Directory Listing",
+        "explanation": "Directory listing enabled is a classic misconfiguration. The server helpfully displays all files in a directory when no index.html exists.\n\n**Why dangerous**:\n- Reveals file structure\n- Exposes backup files\n- Shows naming conventions\n- Enables bulk download\n\n**nginx fix**: Add `autoindex off;` to nginx.conf\n**Apache fix**: Add `Options -Indexes` to .htaccess\n\n**Real-world**: This is how GitHub accidentally exposed private repository data in 2018 (different bug but similar info disclosure)."
+      },
+      {
+        "trigger": "cat backup-2024-01-15/api_keys.txt",
+        "category": "SEC0",
+        "concept": "API Key Security",
+        "explanation": "This file contains 5 critical API keys:\n1. Stripe (payment processing) — live-mode Stripe secrets indicate production traffic\n2. AWS (infrastructure access) — long-term access-key style identifiers grant cloud access\n3. SendGrid (email) — mail-provider API tokens enable outbound email abuse\n4. Internal APIs — custom format, often company-specific\n\n**SEC0 fundamentals**:\n- API keys = passwords for services\n- Never commit to git\n- Never store in web-accessible files\n- Use environment variables or secret managers (AWS Secrets Manager, HashiCorp Vault)\n- Rotate regularly (90 days max)\n\n**Impact chain**: API keys → service access → data theft → financial loss → reputational damage"
+      }
+    ]
+  }
+]

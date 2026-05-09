@@ -1,0 +1,118 @@
+{
+  "examType": "PT1 Web Black-Box Practice",
+  "timeLimit": 90,
+  "description": "Comprehensive web application penetration testing exam focusing on content discovery, authentication issues, IDOR, SQLi/XSS/SSRF, and Burp Suite workflows.",
+  "difficulty": "intermediate",
+  "scenarios": [
+    {
+      "targetIP": "10.10.10.200",
+      "targetDomain": "webapp.thm",
+      "description": "Corporate web application with multiple vulnerability classes",
+      "openPorts": [
+        "22/tcp - SSH (OpenSSH 8.2)",
+        "80/tcp - HTTP (Nginx 1.18.0)",
+        "443/tcp - HTTPS (Nginx 1.18.0)",
+        "3306/tcp - MySQL (Filtered)"
+      ],
+      "objectives": [
+        "Discover hidden directories and admin panels",
+        "Identify authentication bypass vulnerabilities",
+        "Test for IDOR (Insecure Direct Object Reference)",
+        "Exploit SQL injection to extract credentials",
+        "Demonstrate XSS payload execution",
+        "Test for SSRF vulnerabilities",
+        "Find user flag in web application",
+        "Escalate privileges and find root flag"
+      ],
+      "hints": {
+        "strategic": "Web applications often expose functionality through hidden directories. Use wordlists like directory-list-2.3-medium.txt or raft-medium-directories.txt.",
+        "tactical": "Common admin panel paths: /admin, /administrator, /console, /dashboard, /panel. Look for backup files (.bak, .old, ~) and configuration files.",
+        "technical": "Burp Suite's Repeater is essential for manual SQLi testing. Try single quotes (') in URL parameters and form fields to test for injection points.",
+        "specific": "The /api/users endpoint may have IDOR. Try incrementing user IDs: /api/users/1, /api/users/2. Authentication tokens might be predictable or bypassable."
+      },
+      "validApproaches": {
+        "contentDiscovery": [
+          "gobuster dir -u http://webapp.thm -w wordlist.txt",
+          "ffuf -u http://webapp.thm/FUZZ -w wordlist.txt",
+          "dirb http://webapp.thm /usr/share/wordlists/dirb/common.txt",
+          "feroxbuster -u http://webapp.thm -w wordlist.txt"
+        ],
+        "sqliDetection": [
+          "sqlmap -u 'http://webapp.thm/page?id=1' --batch --dbs",
+          "Manual testing: http://webapp.thm/page?id=1' OR '1'='1",
+          "Burp Suite Intruder with SQLi payloads"
+        ],
+        "xssTesting": [
+          "<script>alert('XSS')</script>",
+          "<img src=x onerror=alert('XSS')>",
+          "Reflected XSS via URL parameters",
+          "Stored XSS in comment fields"
+        ],
+        "idorExploitation": [
+          "Increment user IDs: /api/users/1 → /api/users/2",
+          "Test object references: /download?file=report1.pdf → /download?file=../../etc/passwd",
+          "Burp Suite Intruder to enumerate object IDs"
+        ],
+        "ssrfTesting": [
+          "http://webapp.thm/fetch?url=http://localhost:3306",
+          "Test internal ports: http://127.0.0.1:22, http://127.0.0.1:3306",
+          "Attempt AWS metadata: http://169.254.169.254/latest/meta-data/"
+        ],
+        "authenticationBypass": [
+          "SQL injection in login: admin' OR '1'='1'-- -",
+          "Test for default credentials: admin/admin, admin/password",
+          "JWT token manipulation (decode, modify, re-encode)",
+          "Session cookie analysis in Burp Suite"
+        ]
+      },
+      "commandCommentary": {
+        "gobuster": "Industry-standard directory fuzzer. Flags: -u (URL), -w (wordlist), -x (file extensions), -t (threads). Fast and reliable for content discovery.",
+        "sqlmap": "Automated SQL injection tool. Flags: -u (URL), --batch (non-interactive), --dbs (enumerate databases), --dump (extract data). Can be noisy - use carefully in real engagements.",
+        "burpsuite": "Essential web proxy. Repeater for manual testing, Intruder for automation, Scanner for discovery. PT1 focuses on manual techniques, not automated scanning.",
+        "ffuf": "Fast web fuzzer written in Go. More flexible than gobuster - can fuzz headers, POST data, multiple positions. Recommended for advanced fuzzing.",
+        "wfuzz": "Powerful web fuzzer. Can fuzz any part of HTTP request. Use --hc (hide response codes) to filter results.",
+        "curl": "Command-line HTTP client. Essential for manual testing. Flags: -X (method), -H (headers), -d (POST data), -i (show headers), -k (ignore SSL errors)."
+      },
+      "kaliAlternatives": {
+        "gobuster": "ffuf, dirb, feroxbuster, wfuzz",
+        "sqlmap": "Manual SQLi testing with curl/Burp, nosqlmap (for NoSQL)",
+        "nikto": "whatweb, wpscan (for WordPress), nuclei",
+        "burpsuite": "OWASP ZAP, mitmproxy, Caido"
+      }
+    }
+  ],
+  "gradingCriteria": {
+    "contentDiscovery": {
+      "weight": 15,
+      "signals": ["directory fuzzing tool used", "wordlist specified", "admin panel found", "backup files identified"]
+    },
+    "authenticationTesting": {
+      "weight": 15,
+      "signals": ["login tested for SQLi", "default creds attempted", "JWT analysis", "session management tested"]
+    },
+    "idorExploitation": {
+      "weight": 15,
+      "signals": ["object references enumerated", "user ID manipulation", "file path traversal tested"]
+    },
+    "sqliExploitation": {
+      "weight": 20,
+      "signals": ["injection point identified", "database enumerated", "credentials extracted", "methodology correct"]
+    },
+    "xssExploitation": {
+      "weight": 10,
+      "signals": ["XSS payload crafted", "reflection confirmed", "stored XSS tested"]
+    },
+    "ssrfTesting": {
+      "weight": 10,
+      "signals": ["internal ports scanned", "localhost tested", "cloud metadata attempted"]
+    },
+    "burpWorkflow": {
+      "weight": 10,
+      "signals": ["Burp Repeater used", "Intruder configured", "proxy correctly configured", "manual testing demonstrated"]
+    },
+    "reporting": {
+      "weight": 5,
+      "signals": ["findings documented", "evidence captured", "remediation suggested"]
+    }
+  }
+}

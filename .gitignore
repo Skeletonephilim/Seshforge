@@ -1,0 +1,18 @@
+# Dependencies & build
+node_modules/
+dist/
+
+# Env (secrets — do not commit)
+.env
+.env.*
+!.env.example
+
+# Logs & cache
+*.log
+.DS_Store
+.buildcache*
+
+# IDE
+.idea/
+*.swp
+.vscode/*
