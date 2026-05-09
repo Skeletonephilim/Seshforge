@@ -1,4 +1,4 @@
-# Offensive Pentest Command Drill Suite
+# Seshforge : Offensive Pentest Command Drill Suite (by Lucy / Skeletonephilim / Scrow)
 
 ## Tech Stack
 - React 18.2.0 + TypeScript 5.7.2 + Vite 6.3.1
