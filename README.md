@@ -33,3 +33,19 @@ bun run build
 - Built with modern React patterns and TypeScript
 - Responsive design with Tailwind CSS
 - Pre-configured shadcn/ui components
+
+# Seshforge - Lucy's Dojo
+
+Seshforge is a PT1-oriented pentesting training platform built to simulate real certification workflows without requiring VPN access.
+
+It combines vulnerable box simulation, terminal-based exercises, methodology tracking, reporting practice, and repetition-driven training into a single environment designed to build operational muscle memory.
+
+The platform includes:
+- PT1-style attack paths and scenarios
+- Browser-based Linux terminals supporting both Kali and Arch workflows
+- Box and service simulation
+- Command repetition and methodology reinforcement
+- Pentest note-taking and reporting integration
+- Progress and consistency tracking
+
+The goal is to turn instinctive practice into fast, repeatable operational execution under exam conditions.
